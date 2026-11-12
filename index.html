@@ -12,15 +12,65 @@ const base={height:172,shoulder:50,waist:45,hip:50,bust:40,thigh:45,leg:52,arm:4
 let data={A:{...base},B:{...base,height:160,pres:"masc",shoulder:44,hip:53}},who="A",view="front",pose="stand",pair="mm";
 const $=s=>document.querySelector(s);
 function buildSliders(){let root=$("#sliders");root.innerHTML="";for(const [k,d] of Object.entries(defs)){let x=document.createElement("div");x.className="field";x.innerHTML='<div class="fieldtop"><label>'+d[0]+'</label><output id="o-'+k+'"></output></div><input id="s-'+k+'" type="range" min="'+d[1]+'" max="'+d[2]+'">';x.querySelector("input").oninput=e=>{data[who][k]=+e.target.value;render()};root.append(x)}}
-function person(id,p,c){let h=p.height/172,sh=28+(p.shoulder-50)*.28,wa=19+(p.waist-45)*.2,hi=25+(p.hip-50)*.22,th=5+p.thigh*.07,leg=220-(p.leg-52)*1.4,head=12*p.head/50,fill=id==="A"?"url(#a)":"url(#b)",stroke=id==="A"?"#7898a7":"#bd8e9a";let side=view==="side",back=view==="back",rot=view==="45";if(side){sh*=.52;wa*=.6;hi*=.62}if(rot){sh*=.85;wa*=.85;hi*=.85}let dx=pose==="face"?(id==="A"?-8:8):0;
-let g='<ellipse cx="'+c+'" cy="515" rx="'+(hi+12)+'" ry="7" fill="#7c8589" opacity=".13" filter="url(#shadow)"/><g transform="translate(0 '+(515*(1-h))+') translate('+(c*(1-h))+' 0) scale(1 '+h+') '+(back?'translate('+(2*c)+' 0) scale(-1 1)':'')+'"><g fill="'+fill+'" stroke="'+stroke+'" stroke-width="2.2" stroke-linejoin="round">';
-g+='<path d="M'+(c-6)+' 94 L'+(c-6)+' 122 L'+(c+6)+' 122 L'+(c+6)+' 94Z"/><ellipse cx="'+c+'" cy="70" rx="'+head+'" ry="'+(head*1.5)+'"/>';
-g+='<path d="M'+(c-6)+' 122 Q'+(c-sh)+' 127 '+(c-sh)+' 150 Q'+(c-sh-4)+' 174 '+(c-wa)+' 218 Q'+(c-hi)+' 248 '+(c-hi*.75)+' 280 Q'+c+' 295 '+(c+hi*.75)+' 280 Q'+(c+hi)+' 248 '+(c+wa)+' 218 Q'+(c+sh+4)+' 174 '+(c+sh)+' 150 Q'+(c+sh)+' 127 '+(c+6)+' 122Z"/>';
-g+='<path d="M'+(c-hi*.65)+' 278 Q'+(c-hi*.4-th)+' 320 '+(c-13-th/2)+' '+leg+' L'+(c-18)+' 515 L'+(c-7)+' 515 L'+(c-5)+' '+leg+' Q'+(c-3)+' 330 '+(c+2)+' 280Z"/>';
-g+='<path d="M'+(c+hi*.65)+' 278 Q'+(c+hi*.4+th)+' 320 '+(c+13+th/2)+' '+leg+' L'+(c+18)+' 515 L'+(c+7)+' 515 L'+(c+5)+' '+leg+' Q'+(c+3)+' 330 '+(c-2)+' 280Z"/>';
-let arm=5+p.arm*.06;g+='<path d="M'+(c-sh)+' 145 Q'+(c-sh-17)+' 185 '+(c-sh-13)+' 250 L'+(c-sh-10)+' 278 L'+(c-sh-3)+' 278 L'+(c-sh+2)+' 247 Q'+(c-sh+4)+' 200 '+(c-5)+' 155Z"/><path d="M'+(c+sh)+' 145 Q'+(c+sh+17)+' 185 '+(c+sh+13)+' 250 L'+(c+sh+10)+' 278 L'+(c+sh+3)+' 278 L'+(c+sh-2)+' 247 Q'+(c+sh-4)+' 200 '+(c+5)+' 155Z"/></g>';
-if(pose==="hug")g+='<path d="M'+(c-35)+' 165 Q'+c+' 205 '+(c+35)+' 165" fill="none" stroke="'+stroke+'" stroke-width="9" stroke-linecap="round"/>';
-return g+"</g>";}
+function person(id,p,c){
+ const female=p.pres==="fem",neutral=p.pres==="neutral",h=p.height/172;
+ const shoulder=(female?24:29)+(p.shoulder-50)*.34;
+ const waist=(female?17:21)+(p.waist-45)*.23;
+ const hip=(female?27:24)+(p.hip-50)*.30;
+ const thigh=9+p.thigh*.105, arm=5.8+p.arm*.055, head=13*p.head/50;
+ const bust=female?(.45+p.bust*.009):(.15+p.bust*.002);
+ const fill=id==="A"?"url(#a)":"url(#b)", edge=id==="A"?"#718f9e":"#b98491";
+ const skin=id==="A"?"#f0cdb9":"#f2d1c4", shade=id==="A"?"#8ba9b8":"#c58f9c";
+ const mirror=view==="back",side=view==="side",angle=view==="45";
+ let sx=side?.60:angle?.88:1, bodyShoulder=shoulder*sx, bodyWaist=waist*sx, bodyHip=hip*sx;
+ const flip=mirror?'translate('+(2*c)+' 0) scale(-1 1)':'';
+ let g='<ellipse cx="'+c+'" cy="510" rx="'+(bodyHip+22)+'" ry="8" fill="#b7aaa0" opacity=".13"/>';
+ g+='<g transform="translate(0 '+(510*(1-h))+') translate('+(c*(1-h))+' 0) scale(1 '+h+') '+flip+'">';
+ // hair and head
+ g+='<path d="M'+(c-head*.9)+' 76 Q'+(c-head*1.18)+' 42 '+c+' 39 Q'+(c+head*1.18)+' 42 '+(c+head*.9)+' 76 Q'+(c+head*.72)+' 93 '+(c+head*.58)+' 99 L'+(c-head*.58)+' 99 Q'+(c-head*.8)+' 91 '+(c-head*.9)+' 76Z" fill="#5c514d"/>';
+ g+='<path d="M'+(c-head*.78)+' 70 Q'+(c-head*.78)+' 48 '+c+' 47 Q'+(c+head*.78)+' 48 '+(c+head*.78)+' 70 L'+(c+head*.62)+' 91 Q'+c+' 108 '+(c-head*.62)+' 91Z" fill="'+skin+'" stroke="#b98e7d" stroke-width="1.2"/>';
+ g+='<path d="M'+(c-head*.48)+' 82 Q'+c+' 86 '+(c+head*.48)+' 82" fill="none" stroke="#c99f90" stroke-width="1" opacity=".55"/>';
+ g+='<path d="M'+(c-5)+' 100 L'+(c-5)+' 124 Q'+c+' 132 '+(c+5)+' 124 L'+(c+5)+' 100" fill="'+skin+'"/>';
+ // legs, shaped with curved outer and inner contours
+ const crotch=310, knee=395, ankle=493, hipTop=270;
+ for(const s of [-1,1]){
+  const outer=c+s*(bodyHip*.72+th*.25), inner=c+s*8, kneeX=c+s*(bodyHip*.48), ankleX=c+s*(bodyHip*.43);
+  const legPath=s<0
+   ? 'M'+(c- bodyHip*.70)+' '+hipTop+' Q'+(c-bodyHip*.95)+' 321 '+(kneeX-th*.55)+' 366 Q'+(kneeX-th*.45)+' 382 '+(kneeX-2)+' '+knee+' Q'+(kneeX-1)+' 439 '+(ankleX+3)+' '+ankle+' Q'+(ankleX+2)+' 501 '+(ankleX-8)+' 504 L'+(ankleX-23)+' 504 Q'+(ankleX-31)+' 500 '+(ankleX-26)+' 490 L'+(kneeX-th*.95)+' 410 Q'+(kneeX-th*1.25)+' 397 '+(kneeX-th*.95)+' 382 Q'+(c-hip*.55)+' 342 '+(c-hip*.55)+' '+crotch+'Z'
+   : 'M'+(c+ bodyHip*.70)+' '+hipTop+' Q'+(c+bodyHip*.95)+' 321 '+(kneeX+th*.55)+' 366 Q'+(kneeX+th*.45)+' 382 '+(kneeX+2)+' '+knee+' Q'+(kneeX+1)+' 439 '+(ankleX-3)+' '+ankle+' Q'+(ankleX-2)+' 501 '+(ankleX+8)+' 504 L'+(ankleX+23)+' 504 Q'+(ankleX+31)+' 500 '+(ankleX+26)+' 490 L'+(kneeX+th*.95)+' 410 Q'+(kneeX+th*1.25)+' 397 '+(kneeX+th*.95)+' 382 Q'+(c+hip*.55)+' 342 '+(c+hip*.55)+' '+crotch+'Z';
+  g+='<path d="'+legPath+'" fill="'+fill+'" stroke="'+edge+'" stroke-width="1.8" stroke-linejoin="round"/>';
+  g+='<path d="M'+(kneeX+s*2)+' 378 Q'+(kneeX+s*5)+' 396 '+(kneeX+s*2)+' 410" fill="none" stroke="'+edge+'" stroke-width="1" opacity=".35"/>';
+ }
+ // torso and pelvis silhouette: shoulders taper into waist then flare at hips
+ const torso='M'+(c-5)+' 119 Q'+(c-bodyShoulder*.7)+' 116 '+(c-bodyShoulder)+' 139 Q'+(c-bodyShoulder-2)+' 160 '+(c-bodyWaist*1.08)+' 207 Q'+(c-bodyWaist*.92)+' 229 '+(c-bodyWaist)+' 252 Q'+(c-bodyHip*1.02)+' 275 '+(c-bodyHip*.9)+' 303 Q'+c+' 323 '+(c+bodyHip*.9)+' 303 Q'+(c+bodyHip*1.02)+' 275 '+(c+bodyWaist)+' 252 Q'+(c+bodyWaist*.92)+' 229 '+(c+bodyWaist*1.08)+' 207 Q'+(c+bodyShoulder+2)+' 160 '+(c+bodyShoulder)+' 139 Q'+(c+bodyShoulder*.7)+' 116 '+(c+5)+' 119Z';
+ g+='<path d="'+torso+'" fill="'+fill+'" stroke="'+edge+'" stroke-width="2" stroke-linejoin="round"/>';
+ // chest contours and waist light
+ if(!mirror){
+  if(female){
+   g+='<path d="M'+(c-3)+' 157 Q'+(c-shoulder*.72)+' 143 '+(c-shoulder*.70)+' 174 Q'+(c-shoulder*.58)+' 195 '+(c-4)+' 193 Q'+(c+4)+' 193 '+(c+shoulder*.58)+' 195 Q'+(c+shoulder*.70)+' 174 '+(c+shoulder*.72)+' 157" fill="none" stroke="'+edge+'" stroke-width="1.4" opacity=".55"/>';
+   g+='<path d="M'+(c-shoulder*.65)+' 159 Q'+(c-shoulder*.52)+' 143 '+(c-shoulder*.22)+' 158 Q'+(c-shoulder*.12)+' 177 '+(c-shoulder*.30)+' 188 Q'+(c-shoulder*.60)+' 193 '+(c-shoulder*.65)+' 159Z M'+(c+shoulder*.65)+' 159 Q'+(c+shoulder*.52)+' 143 '+(c+shoulder*.22)+' 158 Q'+(c+shoulder*.12)+' 177 '+(c+shoulder*.30)+' 188 Q'+(c+shoulder*.60)+' 193 '+(c+shoulder*.65)+' 159Z" fill="'+shade+'" opacity="'+Math.min(.5,bust*.34)+'"/>';
+  }else{
+   g+='<path d="M'+(c-shoulder*.78)+' 151 Q'+c+' 170 '+(c+shoulder*.78)+' 151" fill="none" stroke="'+edge+'" stroke-width="1.5" opacity=".55"/>';
+   g+='<path d="M'+(c-shoulder*.45)+' 158 Q'+c+' 176 '+(c+shoulder*.45)+' 158" fill="none" stroke="#ffffff" stroke-width="2" opacity=".35"/>';
+  }
+  g+='<path d="M'+(c-3)+' 207 Q'+(c-8)+' 230 '+(c-4)+' 250 M'+(c+3)+' 207 Q'+(c+8)+' 230 '+(c+4)+' 250" fill="none" stroke="'+edge+'" stroke-width="1.2" opacity=".42"/>';
+  g+='<path d="M'+(c-bodyWa*.65)+' 258 Q'+c+' 270 '+(c+bodyWa*.65)+' 258" fill="none" stroke="#ffffff" stroke-width="2" opacity=".45"/>';
+ }
+ // arms with natural shoulder, elbow and wrist taper
+ for(const s of [-1,1]){
+  const shoulderX=c+s*(bodyShoulder*.91), elbowX=c+s*(bodyShoulder+arm*.35), wristX=c+s*(bodyShoulder+arm*.18);
+  const armPath='M'+shoulderX+' 137 Q'+(c+s*(bodyShoulder+arm*.55))+' 130 '+(c+s*(bodyShoulder+arm*.88))+' 158 Q'+(c+s*(bodyShoulder+arm*.98))+' 183 '+(elbowX+s*2)+' 220 L'+(wristX+s*3)+' 282 Q'+(wristX+s*2)+' 292 '+(wristX-s*4)+' 292 Q'+(wristX-s*10)+' 290 '+(wristX-s*9)+' 280 L'+(elbowX-s*4)+' 218 Q'+(c+s*(bodyShoulder-arm*.15))+' 180 '+shoulderX+' 165Z';
+  g+='<path d="'+armPath+'" fill="'+fill+'" stroke="'+edge+'" stroke-width="1.8" stroke-linejoin="round"/>';
+  g+='<path d="M'+(wristX-s*5)+' 290 Q'+(wristX-s*12)+' 306 '+(wristX-s*8)+' 316 Q'+(wristX+s*2)+' 322 '+(wristX+s*7)+' 311 L'+(wristX+s*3)+' 291Z" fill="'+skin+'" stroke="#c79f8f" stroke-width="1"/>';
+ }
+ // soft garment seam and highlights, giving a polished fashion-plate finish
+ g+='<path d="M'+(c-2)+' 124 Q'+(c-8)+' 145 '+(c-5)+' 165 M'+(c+2)+' 124 Q'+(c+8)+' 145 '+(c+5)+' 165" stroke="#ffffff" stroke-width="2" opacity=".38" fill="none"/>';
+ g+='<path d="M'+(c-bodyHip*.55)+' 305 Q'+c+' 316 '+(c+bodyHip*.55)+' 305" fill="none" stroke="'+edge+'" stroke-width="1.2" opacity=".35"/>';
+ // view-specific stylization
+ if(side){g+='<path d="M'+(c-4)+' 133 Q'+(c-14)+' 210 '+(c-5)+' 286" fill="none" stroke="'+edge+'" stroke-width="1.3" opacity=".35"/>'}
+ if(angle){g+='<path d="M'+c+' 130 Q'+(c+10)+' 210 '+(c+4)+' 290" fill="none" stroke="#ffffff" stroke-width="2" opacity=".35"/>'}
+ g+='</g>';return g;
+}
 function render(){let ca=pose==="face"?245:pose==="hug"?295:245,cb=pose==="face"?415:pose==="hug"?365:415;$("#figA").innerHTML=person("A",data.A,ca);$("#figB").innerHTML=person("B",data.B,cb);for(let [k,d] of Object.entries(defs)){let el=$("#s-"+k);if(el){el.value=data[who][k];$("#o-"+k).textContent=data[who][k]+(d[3]==="cm"?" cm":"%")}}$("#ha").value=data.A.height;$("#hb").value=data.B.height;$("#delta").textContent="身高差 "+Math.abs(data.A.height-data.B.height)+" cm　｜　A "+data.A.height+" cm　B "+data.B.height+" cm";}
 function choose(id){who=id;document.querySelectorAll("[data-who]").forEach(b=>b.classList.toggle("active",b.dataset.who===id));buildSliders();render();document.querySelectorAll("[data-pres]").forEach(b=>b.classList.toggle("active",b.dataset.pres===data[who].pres))}
 document.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>choose(b.dataset.who));["A","B"].forEach(id=>$("#h"+id.toLowerCase()).onchange=e=>{data[id].height=Math.max(120,Math.min(220,+e.target.value||120));render()});
