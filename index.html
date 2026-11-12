@@ -35,21 +35,57 @@ function updateCamera(){let t=orbit.theta,p=orbit.phi,d=orbit.distance;camera.po
 function mat(color,rough=.72){return new THREE.MeshStandardMaterial({color,roughness:rough})}
 function sphere(parent,x,y,z,sx,sy,sz,m){let o=new THREE.Mesh(new THREE.SphereGeometry(1,24,18),m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);parent.add(o);return o}
 function link(parent,a,b,r1,r2,m){let v1=new THREE.Vector3(...a),v2=new THREE.Vector3(...b),dir=v2.clone().sub(v1),mesh=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,dir.length(),16,1),m);mesh.position.copy(v1.add(v2).multiplyScalar(.5));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());parent.add(mesh);return mesh}
-function makePerson(p,id){let g=new THREE.Group(),skin=mat(id==="A"?"#d8b5a1":"#e5c2b2"),shirt=mat(id==="A"?"#91adbb":"#c99eaa"),pants=mat(id==="A"?"#657f8b":"#a87986"),hair=mat("#514943"),sh=.36+(p.shoulder-50)*.004,wa=.27+(p.waist-45)*.0027,hip=.31+(p.hip-50)*.003,th=.105+p.thigh*.0015,arm=.065+p.arm*.0008,head=.115*p.head/50,legH=1.62+(p.leg-52)*.018,torsoH=1.55-(p.leg-52)*.018,scale=p.height/172;
+function makePerson(p,id){
+ let g=new THREE.Group(),skin=mat(id==="A"?"#d8b5a1":"#e5c2b2"),shirt=mat(id==="A"?"#91adbb":"#c99eaa"),pants=mat(id==="A"?"#657f8b":"#a87986"),hair=mat("#514943"),detail=mat(id==="A"?"#6f8d9b":"#ad7d89"),sh=.34+(p.shoulder-50)*.0045,wa=.235+(p.waist-45)*.0028,hip=.29+(p.hip-50)*.0035,th=.085+p.thigh*.00125,arm=.052+p.arm*.00075,head=.105*p.head/50,legH=1.58+(p.leg-52)*.019,torsoH=1.48-(p.leg-52)*.019,scale=p.height/172,fem=p.pres==="fem",mus=p.muscle/100;
  g.scale.y=scale;
- // legs and feet
- for(let s of [-1,1]){let x=s*hip*.55;link(g,[x*.9,0.18,0],[x,legH*.52,0],th*.78,th,pants);sphere(g,x,.18,0,.105,.12,.19,pants);sphere(g,x,legH*.52,0,th,th*1.05,th*.92,pants);link(g,[x,legH*.52,0],[s*hip*.55,legH,0],th,th*.78,pants)}
- // torso via lathe profile
- let points=[[.19,0],[hip, .18],[hip*.98,.42],[wa,.72],[wa*1.08,.9],[sh*.84,1.18],[sh,1.42],[sh*.78,torsoH],[.12,torsoH+.05]].map(a=>new THREE.Vector2(a[0],a[1]));
- let torso=new THREE.Mesh(new THREE.LatheGeometry(points,32),shirt);torso.position.y=legH;g.add(torso);
- sphere(g,0,legH+torsoH+.07,0,.105,.12,.11,skin);
- sphere(g,0,legH+torsoH+.22,0,head,head*1.22,head*.95,skin);
- sphere(g,0,legH+torsoH+.30,-.015,head*1.02,head*.55,head*.98,hair);
- // arms
- for(let s of [-1,1]){let shoulder=[s*sh*.92,legH+torsoH-.12,0],elbow=[s*(sh+arm*.7),legH+torsoH-.66,.015],hand=[s*(sh+arm*.75),legH+.18,.02];link(g,shoulder,elbow,arm*1.15,arm,shirt);sphere(g,...elbow,arm,arm,arm,shirt);link(g,elbow,hand,arm,arm*.78,skin);sphere(g,...hand,arm*.72,arm*.9,arm*.65,skin)}
- // subtle chest form
- if(p.pres==="fem"||p.pres==="neutral"){let fullness=p.bust/100;for(let s of [-1,1])sphere(g,s*.12,legH+torsoH-.38,.16,.105+fullness*.055,.12+fullness*.035,.09+fullness*.045,shirt)}
- return g}
+ // Soft tapered limbs: overlapping rounded sections create a continuous sculpted silhouette.
+ function limb(a,b,rA,rB,depthA,depthB,material){let mid=[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],v=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]),mesh=new THREE.Mesh(new THREE.CylinderGeometry(rB,rA,v.length(),24,1),material);mesh.position.set(...mid);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());mesh.scale.z=(depthA+depthB)/2/Math.max(.001,(rA+rB)/2);g.add(mesh);sphere(g,...a,rA,depthA,rA,material);sphere(g,...b,rB,depthB,rB,material)}
+ // Legs with visible thigh, knee and calf taper.
+ for(let s of [-1,1]){
+  let x=s*hip*.48,outer=s*(hip*.48+th*.18);
+  limb([x,legH*.56,0],[x*.96,legH*.25,.005],th*.98,th*.72,th*.78,th*.68,pants);
+  limb([x*.96,legH*.25,.005],[x*.98,.16,.035],th*.72,th*.55,th*.66,th*.52,pants);
+  sphere(g,x*.98,.105,.10,.105,.09,.19,pants);
+  sphere(g,x,legH*.55,0,th*.94,th*1.12,th*.78,pants);
+  sphere(g,x*.96,legH*.25,.005,th*.68,th*.62,th*.62,pants);
+ }
+ // Pelvis and torso are separate smooth masses, so waist-to-hip contrast reads clearly.
+ sphere(g,0,legH+.12,0,hip*.98,.28,hip*.70,shirt);
+ let rings=[
+  [.16,0], [hip*.92,.10],[hip,.22],[hip*.88,.34],[wa*.96,.50],[wa,.68],
+  [wa*1.05,.82],[sh*.78,1.02],[sh*.98,1.22],[sh*1.02,1.34],[sh*.78,torsoH]
+ ].map(v=>new THREE.Vector2(v[0],v[1]));
+ let torso=new THREE.Mesh(new THREE.LatheGeometry(rings,48),shirt);torso.position.y=legH+.12;torso.scale.z=.70;g.add(torso);
+ // Chest / pectoral volume and shoulder caps.
+ for(let s of [-1,1]){
+  sphere(g,s*sh*.48,legH+torsoH-.23,.12,sh*.48,.22,.18,shirt);
+  sphere(g,s*sh*.98,legH+torsoH-.03,0,.14,.16,.14,shirt);
+  if(fem){let fullness=.045+p.bust*.00135;sphere(g,s*.115,legH+torsoH-.38,.135,.12+fullness,.13+fullness*.55,.105+fullness*.6,shirt)}
+  else {sphere(g,s*.105,legH+torsoH-.38,.13,.115,.105,.105,shirt)}
+ }
+ // Neck, head and hair cap.
+ link(g,[0,legH+torsoH-.02,0],[0,legH+torsoH+.18,0],.075,.065,skin);
+ sphere(g,0,legH+torsoH+.29,0,head,head*1.25,head*.92,skin);
+ sphere(g,0,legH+torsoH+.39,-.012,head*1.03,head*.57,head*.96,hair);
+ // Arms hang naturally beside the torso; forearms taper toward wrists.
+ for(let s of [-1,1]){
+  let shoulder=[s*sh*.98,legH+torsoH-.04,0],elbow=[s*(sh+arm*.72),legH+torsoH-.67,.015],wrist=[s*(sh+arm*.66),legH+.28,.035],hand=[s*(sh+arm*.65),legH+.12,.055];
+  limb(shoulder,elbow,arm*1.35,arm,arm*1.2,arm*.9,shirt);
+  limb(elbow,wrist,arm*.92,arm*.68,arm*.88,arm*.65,skin);
+  sphere(g,...hand,arm*.62,arm*.8,arm*.48,skin);
+ }
+ // Subtle sculpted anatomy accents on the front; no explicit anatomical detail.
+ function curve(points,material,r=.009){let path=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v)));let mesh=new THREE.Mesh(new THREE.TubeGeometry(path,20,r,8,false),material);g.add(mesh)}
+ let front=.205;
+ curve([[-.17,legH+torsoH-.23,front],[0,legH+torsoH-.19,front+.01],[.17,legH+torsoH-.23,front]],detail,.008);
+ if(mus>.25){
+  for(let s of [-1,1]){
+   curve([[s*.07,legH+torsoH-.48,front+.015],[s*.085,legH+torsoH-.62,front+.012],[s*.07,legH+torsoH-.75,front]],detail,.006);
+  }
+  curve([[0,legH+torsoH-.52,front+.018],[0,legH+torsoH-.68,front+.018],[0,legH+torsoH-.82,front]],detail,.005);
+ }
+ return g
+}
 function clearGroup(g){while(g.children.length){let o=g.children.pop();o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}}}
 function render3D(){if(!scene)return;clearGroup(rootA);clearGroup(rootB);let a=makePerson(data.A,"A"),b=makePerson(data.B,"B");rootA.add(a);rootB.add(b);rootA.position.x=pose==="face"?-1.05:-.82;rootB.position.x=pose==="face"?1.05:.82;if(pose==="face"){rootA.rotation.y=-Math.PI/2;rootB.rotation.y=Math.PI/2}else if(view==="back"){rootA.rotation.y=Math.PI;rootB.rotation.y=Math.PI}else{rootA.rotation.y=0;rootB.rotation.y=0}if(pose==="hug"){rootA.position.x=-.55;rootB.position.x=.55}orbit.theta=view==="side"?Math.PI/2:view==="back"?Math.PI:view==="45"?Math.PI/4:0;updateCamera();for(let [k,d] of Object.entries(defs)){let el=$("#s-"+k);if(el){el.value=data[who][k];$("#o-"+k).textContent=data[who][k]+(d[3]==="cm"?" cm":"%")}}$("#ha").value=data.A.height;$("#hb").value=data.B.height;$("#delta").textContent="身高差 "+Math.abs(data.A.height-data.B.height)+" cm　｜　A "+data.A.height+" cm　B "+data.B.height+" cm"}
 function buildSliders(){let root=$("#sliders");root.innerHTML="";for(const [k,d] of Object.entries(defs)){let x=document.createElement("div");x.className="field";x.innerHTML='<div class="fieldtop"><label>'+d[0]+'</label><output id="o-'+k+'"></output></div><input id="s-'+k+'" type="range" min="'+d[1]+'" max="'+d[2]+'">';x.querySelector("input").oninput=e=>{data[who][k]=+e.target.value;render3D()};root.append(x)}}
